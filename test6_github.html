@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+  <meta content="utf-8" http-equiv="encoding"> -->
+  <meta charset="utf-8" />
+  <title>Experiment #1</title>
+  jsPsych/jspsych.js
+  <script src="https://niket-agrawal.github.io/jsPsych/jsPsych/jspsych.js"></script>
+  <script src="https://niket-agrawal.github.io/jsPsych/jsPsych/plugins/jspsych-fullscreen.js"></script>
+  <script src="https://niket-agrawal.github.io/jsPsych/jsPsych/plugins/jspsych-resize.js"></script>
+  <script src="https://niket-agrawal.github.io/jsPsych/jsPsych/plugins/jspsych-instructions.js"></script>
+  <script src="https://niket-agrawal.github.io/jsPsych/jsPsych/plugins/jspsych-survey-html-form.js"></script>
+  <!-- <script src="jsPsych/external_plugins/jspsych-csv.js"></script> -->
+  <script src="https://niket-agrawal.github.io/jsPsych/jsPsych/plugins/jspsych-html-keyboard-response.js"></script>
+  <script src="https://niket-agrawal.github.io/jsPsych/jsPsych/plugins/jspsych-html-button-response.js"></script>
+  <link href="jsPsych/css/jspsych.css" rel="stylesheet" type="text/css"></link>
+  <style>
+    body {
+        background-color: #000000;
+        background-color: #777777;
+      }
+    img {
+      width: 629.40px;
+    }
+  </style>
+</head>
+
+<body></body>
+
+<script>
+  const viewport_width = Math.max(document.documentElement.clientWidth || 0, window.outerWidth || 0);
+  const viewport_height = Math.max(document.documentElement.clientHeight || 0, window.outerHeight || 0);
+  const img_height = viewport_height/3;
+
+  var top_edge = (viewport_height/2)-(img_height/2);                //effectively y
+  var left_edge_cntr = (viewport_width/2)-(img_height/2);           //effectively x
+  var left_edge_left = left_edge_cntr - (viewport_width/5);         //effectively x
+  var left_edge_rght = left_edge_cntr + (viewport_width/5);         //effectively x
+
+  var all_12_stim = [
+    { stimulus: "<img style = 'position: fixed; left: " +left_edge_left+ "px; top: " +top_edge+ "px; width: " +img_height+ "px; height: " +img_height+ "px;' src = https://niket-agrawal.github.io/jsPsych/stim_aditi/selfH.jpg>", 
+      data: { identity: "self", emotion: "happy", side: "Lft", condition: "Self_H_L", corrResp: "z"}},
+    { stimulus: "<img style = 'position: fixed; left: " +left_edge_rght+ "px; top: " +top_edge+ "px; width: " +img_height+ "px; height: " +img_height+ "px;' src = https://niket-agrawal.github.io/jsPsych/stim_aditi/selfH.jpg>", 
+      data: { identity: "self", emotion: "happy", side: "Rgt", condition: "Self_H_R", corrResp: "z"}},
+    { stimulus: "<img style = 'position: fixed; left: " +left_edge_cntr+ "px; top: " +top_edge+ "px; width: " +img_height+ "px; height: " +img_height+ "px;' src = https://niket-agrawal.github.io/jsPsych/stim_aditi/selfH.jpg>", 
+      data: { identity: "self", emotion: "happy", side: "Cnt", condition: "Self_H_C", corrResp: "z"}},
+    { stimulus: "<img style = 'position: fixed; left: " +left_edge_left+ "px; top: " +top_edge+ "px; width: " +img_height+ "px; height: " +img_height+ "px;' src = https://niket-agrawal.github.io/jsPsych/stim_aditi/selfN.jpg>", 
+      data: { identity: "self", emotion: "nutrl", side: "Lft", condition: "Self_N_L", corrResp: "z"}},
+    { stimulus: "<img style = 'position: fixed; left: " +left_edge_rght+ "px; top: " +top_edge+ "px; width: " +img_height+ "px; height: " +img_height+ "px;' src = https://niket-agrawal.github.io/jsPsych/stim_aditi/selfN.jpg>", 
+      data: { identity: "self", emotion: "nutrl", side: "Rgt", condition: "Self_N_R", corrResp: "z"}},
+    { stimulus: "<img style = 'position: fixed; left: " +left_edge_cntr+ "px; top: " +top_edge+ "px; width: " +img_height+ "px; height: " +img_height+ "px;' src = https://niket-agrawal.github.io/jsPsych/stim_aditi/selfN.jpg>", 
+      data: { identity: "self", emotion: "nutrl", side: "Cnt", condition: "Self_N_C", corrResp: "z"}},
+    { stimulus: "<img style = 'position: fixed; left: " +left_edge_left+ "px; top: " +top_edge+ "px; width: " +img_height+ "px; height: " +img_height+ "px;' src = https://niket-agrawal.github.io/jsPsych/stim_aditi/frndH.jpg>", 
+      data: { identity: "frnd", emotion: "happy", side: "Lft", condition: "Frnd_H_L", corrResp: "m"}},
+    { stimulus: "<img style = 'position: fixed; left: " +left_edge_rght+ "px; top: " +top_edge+ "px; width: " +img_height+ "px; height: " +img_height+ "px;' src = https://niket-agrawal.github.io/jsPsych/stim_aditi/frndH.jpg>", 
+      data: { identity: "frnd", emotion: "happy", side: "Rgt", condition: "Frnd_H_R", corrResp: "m"}},
+    { stimulus: "<img style = 'position: fixed; left: " +left_edge_cntr+ "px; top: " +top_edge+ "px; width: " +img_height+ "px; height: " +img_height+ "px;' src = https://niket-agrawal.github.io/jsPsych/stim_aditi/frndH.jpg>", 
+      data: { identity: "frnd", emotion: "happy", side: "Cnt", condition: "Frnd_H_C", corrResp: "m"}},
+    { stimulus: "<img style = 'position: fixed; left: " +left_edge_left+ "px; top: " +top_edge+ "px; width: " +img_height+ "px; height: " +img_height+ "px;' src = https://niket-agrawal.github.io/jsPsych/stim_aditi/frndN.jpg>", 
+      data: { identity: "frnd", emotion: "nutrl", side: "Lft", condition: "Frnd_N_L", corrResp: "m"}},
+    { stimulus: "<img style = 'position: fixed; left: " +left_edge_rght+ "px; top: " +top_edge+ "px; width: " +img_height+ "px; height: " +img_height+ "px;' src = https://niket-agrawal.github.io/jsPsych/stim_aditi/frndN.jpg>", 
+      data: { identity: "frnd", emotion: "nutrl", side: "Rgt", condition: "Frnd_N_R", corrResp: "m"}},
+    { stimulus: "<img style = 'position: fixed; left: " +left_edge_cntr+ "px; top: " +top_edge+ "px; width: " +img_height+ "px; height: " +img_height+ "px;' src = https://niket-agrawal.github.io/jsPsych/stim_aditi/frndN.jpg>", 
+      data: { identity: "frnd", emotion: "nutrl", side: "Cnt", condition: "Frnd_N_C", corrResp: "m"}}];
+
+  var all_12 = (all_12_stim);
+  var all_36 = (all_12_stim.concat(all_12_stim)).concat(all_12_stim);
+
+  /* Randomize array in-place using Durstenfeld shuffle algorithm */
+  // https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
+  function shuffleArray(array) {
+    for (var i = array.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+    return array;
+  }
+
+  var stim_block1 = shuffleArray(all_36.slice());
+  var stim_block2 = shuffleArray(all_36.slice());
+  var stim_block3 = shuffleArray(all_36.slice());
+  var test_run = [all_12[0],all_12[7]];
+ 
+  var fullscreen_trial = {
+    type: 'fullscreen',
+    fullscreen_mode: true
+  }
+  var fullscreen_trial_exit = {
+    type: 'fullscreen',
+    fullscreen_mode: false
+  }
+  var cursor_off = {
+    type : "html-keyboard-response",
+    stimulus :"<div style = 'color: white;'>Get ready! Press any key to begin.</div>",
+    choices: jsPsych.ALL_KEYS,
+    on_finish: function(data) {
+      document.body.style.cursor = 'none'; // hide the mouse cursor during the  task
+    }
+  }
+  var cursor_on = {
+    type : "html-keyboard-response",
+    stimulus :" ",
+    choices: jsPsych.NO_KEYS,
+    trial_duration: 10,
+    on_finish: function(data) {
+      document.body.style.cursor = 'auto';
+    }
+  }
+
+  var welcome = {
+    type: "survey-html-form",
+    preamble: '<p><div style = "color: white;">Please enter Participant-ID given by the experimenter.</div></p>',
+    html: '<p><div style = "color: white;"> Participant ID : <input name = "Part_ID" type: "text"/></div></p>',
+    choices: ["Click here to continue"],
+    on_finish: function (data){
+      data.responses = JSON.parse(data.responses);
+      jsPsych.data.addProperties({Part_ID: data.responses.Part_ID})
+    }
+  }
+
+  var instructions = {
+    type: 'instructions',
+    pages:["<div style = 'color: white;'><p>In this experiment, there will be <b>one Practice Block</b> and <b>three Experimental Blocks</b>.</p>"+
+    "<p>In each trial, a fixation cross (<b>+</b>) will appear on the screen followed by a face on right, left or centre. <br> You have to respond whether the face was of self or friend.</p>"+
+      "<p>Press the <b> Z key </b> if it was SELF face.</p>"+
+      "<p>Press the <b> M key </b> if it was FRIEND's face.</p></div>",
+      "<div style = 'color: white;'><p>If you are ready, press 'Next' to start the practice block.</p>" +
+      "<p>Here feedback will be given to you about your responses.</p></div>"],
+    show_clickable_nav: true,
+    show_page_number: true
+  }
+  
+  var fixation = {
+    type : 'html-keyboard-response',
+    stimulus: '<div style = "font-size: 70px; color: #D3D3D3;">+</div>',
+    choices : jsPsych.NO_KEYS,
+    trial_duration: 1000
+  }
+  
+  var iti = {
+    type : 'html-keyboard-response',
+    stimulus: '',
+    choices : jsPsych.NO_KEYS,
+    trial_duration: 1000
+  }
+
+  var target = {
+    timeline: [{
+      type: 'html-keyboard-response',
+      choices: ['z', 'm'],
+      stimulus_duration: 100,
+      trial_duration: 500000, //null
+      stimulus: jsPsych.timelineVariable('stimulus'),
+      data: jsPsych.timelineVariable('data'),
+      maintain_aspect_ratio: true,
+      on_finish: function(data){
+        var keyresponse = data.key_press;
+        if(keyresponse == null) {
+          data.acc= 9; 
+        } else if(keyresponse == 'z' || 'm'){
+          if (keyresponse == jsPsych.pluginAPI.convertKeyCharacterToKeyCode(data.corrResp)){
+            data.acc= 1;
+          } else if (keyresponse != jsPsych.pluginAPI.convertKeyCharacterToKeyCode(data.corrResp)){
+            data.acc= 0;
+          }}
+      }
+    }]
+  }
+
+  var feedback = {
+    type:'html-keyboard-response',
+    stimulus: function(){
+      var last_trial_correct = jsPsych.data.get().last(1).values()[0].acc;
+      var to_return;
+      if (last_trial_correct== 1){
+        to_return = "CORRECT";
+        //return "<p><b>CORRECT!</b</p>";
+      }else if(last_trial_correct== 0) {
+        to_return = "INCORRECT";
+        //return "<p><b>INCORRECT</b></p>";
+      }else if(last_trial_correct== 9) {
+        to_return = "NO RESPONSE";
+        //return "<p><b>No response,Please respond faster. </b></p>";
+      }
+      return "<div style = 'font-size: 30px; color: white;'>"+to_return+"</div>"
+    },
+    choices : jsPsych.NO_KEYS,
+    trial_duration: 1000
+  }
+
+  var block_practice = {
+    timeline: [iti,fixation,target,feedback],
+    timeline_variables: all_12,
+    randomize_order: true,
+    repetitions:1
+  }
+
+  var instructions2 = {
+    type: 'instructions',
+    pages:["<div style = 'color: white;'><pYou have finished the practice block.</p>"+
+    "<p><br>Reminder: In each trial, a fixation cross (<b>+</b>) will appear on the screen followed by a face on right, left or centre. <br> You have to respond whether the face was of self or friend.</p>"+
+      "<p>Press the <b> Z key </b> if it was SELF face.</p>"+
+      "<p>Press the <b> M key </b> if it was FRIEND's face.</p></div>",
+      "<div style = 'color: white;'><p>If you are ready, press 'Next' to start the experiment block.</p>" +
+      "<p>Now, feedback will NOT be given to you about your responses.</p></div>"],
+    show_clickable_nav: true,
+    show_page_number: true
+  }
+
+  var block1 = {
+    timeline : [iti,fixation,target],
+    timeline_variables: stim_block1,
+    randomize_order: false, //it is pre-randomized
+    repetitions: 1
+  }
+
+  var block2 = {
+    timeline : [iti,fixation,target],
+    timeline_variables: stim_block2,
+    randomize_order: false,
+    repetitions: 1
+  }
+
+  var block3 = {
+    timeline : [iti,fixation,target],
+    timeline_variables: stim_block3,
+    randomize_order: false,
+    repetitions: 1
+  }
+
+  var end_trial = {
+    type: 'html-button-response',
+    stimulus:[ "<div style = 'color: white;'><p> Thanks for your participation. </p></div>" ],
+    choices: ["Click here to end the experiment and saving data."]
+  }
+
+  var break_trial = {
+    type: 'html-button-response',
+    stimulus:[ "<div style = 'color: white;'> <p> Take rest. <br><br><br> Press button below to continue for the next experimental block. </p> </div>" ],
+    choices: ["Click here when ready"]
+  }
+
+  function saveData(name, data){
+   var xhr = new XMLHttpRequest();
+   xhr.open('POST', 'write_data1.php');
+   xhr.setRequestHeader('Content-Type', 'application/json');
+   xhr.send(JSON.stringify({filename: name, filedata: data}));
+  };
+  
+  var images = ['img/1.png','img/2.png','img/3.png','img/4.png','img/5.png','img/6.png','img/7.png','img/8.png','img/bars.png','img/detect.png'];
+  jsPsych.init({
+  /*  timeline: [ fullscreen_trial, welcome, instructions, cursor_off,block_practice,cursor_on, instructions2, 
+      cursor_off,block1,cursor_on,break_trial, 
+      cursor_off,block2,cursor_on,break_trial, 
+      cursor_off,block3,cursor_on,end_trial,fullscreen_trial_exit ], */
+    timeline: [welcome, break_trial,end_trial],
+    preload_images:images,
+    //on_finish: function(){
+    //  jsPsych.data.displayData();
+    //}
+    on_finish: function() {
+    //  var id = jsPsych.data.get().values()[0].Part_ID
+    //  /saveData(id, jsPsych.data.get().csv());
+      var local_id = jsPsych.data.get().values()[0].Part_ID + '_data.csv';
+      jsPsych.data.get().localSave('csv', local_id);
+    //  console.log(jsPsych.data.get().csv());
+    }
+  });
+
+</script>
+
+</html>
