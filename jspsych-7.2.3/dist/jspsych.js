@@ -70,7 +70,7 @@ var jsPsychModule = (function (exports) {
     	return self;
     };
 
-    var version = "7.2.3";
+    var version = "7.3.3";
 
     class MigrationError extends Error {
         constructor(message = "The global `jsPsych` variable is no longer available in jsPsych v7.") {
@@ -135,11 +135,44 @@ var jsPsychModule = (function (exports) {
             return obj;
         }
     }
+    /**
+     * Merges two objects, recursively.
+     * @param obj1 Object to merge
+     * @param obj2 Object to merge
+     */
+    function deepMerge(obj1, obj2) {
+        let merged = {};
+        for (const key in obj1) {
+            if (obj1.hasOwnProperty(key)) {
+                if (typeof obj1[key] === "object" && obj2.hasOwnProperty(key)) {
+                    merged[key] = deepMerge(obj1[key], obj2[key]);
+                }
+                else {
+                    merged[key] = obj1[key];
+                }
+            }
+        }
+        for (const key in obj2) {
+            if (obj2.hasOwnProperty(key)) {
+                if (!merged.hasOwnProperty(key)) {
+                    merged[key] = obj2[key];
+                }
+                else if (typeof obj2[key] === "object") {
+                    merged[key] = deepMerge(merged[key], obj2[key]);
+                }
+                else {
+                    merged[key] = obj2[key];
+                }
+            }
+        }
+        return merged;
+    }
 
     var utils = /*#__PURE__*/Object.freeze({
         __proto__: null,
         unique: unique,
-        deepCopy: deepCopy
+        deepCopy: deepCopy,
+        deepMerge: deepMerge
     });
 
     class DataColumn {
@@ -842,8 +875,13 @@ var jsPsychModule = (function (exports) {
             this.img_cache = {};
             this.preloadMap = new Map();
             this.microphone_recorder = null;
+            this.camera_stream = null;
+            this.camera_recorder = null;
         }
         getVideoBuffer(videoID) {
+            if (videoID.startsWith("blob:")) {
+                this.video_buffers[videoID] = videoID;
+            }
             return this.video_buffers[videoID];
         }
         initAudio() {
@@ -898,15 +936,15 @@ var jsPsychModule = (function (exports) {
                         callback_error({ source: source, error: e });
                     });
                 };
-                request.onerror = function (e) {
+                request.onerror = (e) => {
                     let err = e;
-                    if (this.status == 404) {
+                    if (request.status == 404) {
                         err = "404";
                     }
                     callback_error({ source: source, error: err });
                 };
-                request.onloadend = function (e) {
-                    if (this.status == 404) {
+                request.onloadend = (e) => {
+                    if (request.status == 404) {
                         callback_error({ source: source, error: "404" });
                     }
                 };
@@ -963,20 +1001,21 @@ var jsPsychModule = (function (exports) {
                 callback_complete();
                 return;
             }
-            for (var i = 0; i < images.length; i++) {
-                var img = new Image();
-                img.onload = function () {
+            for (let i = 0; i < images.length; i++) {
+                const img = new Image();
+                const src = images[i];
+                img.onload = () => {
                     n_loaded++;
-                    callback_load(img.src);
+                    callback_load(src);
                     if (n_loaded === images.length) {
                         callback_complete();
                     }
                 };
-                img.onerror = function (e) {
-                    callback_error({ source: img.src, error: e });
+                img.onerror = (e) => {
+                    callback_error({ source: src, error: e });
                 };
-                img.src = images[i];
-                this.img_cache[images[i]] = img;
+                img.src = src;
+                this.img_cache[src] = img;
                 this.preload_requests.push(img);
             }
         }
@@ -994,9 +1033,9 @@ var jsPsychModule = (function (exports) {
                 const request = new XMLHttpRequest();
                 request.open("GET", video, true);
                 request.responseType = "blob";
-                request.onload = function () {
-                    if (this.status === 200 || this.status === 0) {
-                        const videoBlob = this.response;
+                request.onload = () => {
+                    if (request.status === 200 || request.status === 0) {
+                        const videoBlob = request.response;
                         video_buffers[video] = URL.createObjectURL(videoBlob); // IE10+
                         n_loaded++;
                         callback_load(video);
@@ -1005,15 +1044,15 @@ var jsPsychModule = (function (exports) {
                         }
                     }
                 };
-                request.onerror = function (e) {
+                request.onerror = (e) => {
                     let err = e;
-                    if (this.status == 404) {
+                    if (request.status == 404) {
                         err = "404";
                     }
                     callback_error({ source: video, error: err });
                 };
-                request.onloadend = function (e) {
-                    if (this.status == 404) {
+                request.onloadend = (e) => {
+                    if (request.status == 404) {
                         callback_error({ source: video, error: "404" });
                     }
                 };
@@ -1085,11 +1124,26 @@ var jsPsychModule = (function (exports) {
         getMicrophoneRecorder() {
             return this.microphone_recorder;
         }
+        initializeCameraRecorder(stream, opts) {
+            this.camera_stream = stream;
+            const recorder = new MediaRecorder(stream, opts);
+            this.camera_recorder = recorder;
+        }
+        getCameraStream() {
+            return this.camera_stream;
+        }
+        getCameraRecorder() {
+            return this.camera_recorder;
+        }
     }
 
     class SimulationAPI {
+        constructor(getDisplayContainerElement, setJsPsychTimeout) {
+            this.getDisplayContainerElement = getDisplayContainerElement;
+            this.setJsPsychTimeout = setJsPsychTimeout;
+        }
         dispatchEvent(event) {
-            document.body.dispatchEvent(event);
+            this.getDisplayContainerElement().dispatchEvent(event);
         }
         /**
          * Dispatches a `keydown` event for the specified key
@@ -1112,7 +1166,7 @@ var jsPsychModule = (function (exports) {
          */
         pressKey(key, delay = 0) {
             if (delay > 0) {
-                setTimeout(() => {
+                this.setJsPsychTimeout(() => {
                     this.keyDown(key);
                     this.keyUp(key);
                 }, delay);
@@ -1129,7 +1183,7 @@ var jsPsychModule = (function (exports) {
          */
         clickTarget(target, delay = 0) {
             if (delay > 0) {
-                setTimeout(() => {
+                this.setJsPsychTimeout(() => {
                     target.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
                     target.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
                     target.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -1149,7 +1203,7 @@ var jsPsychModule = (function (exports) {
          */
         fillTextInput(target, text, delay = 0) {
             if (delay > 0) {
-                setTimeout(() => {
+                this.setJsPsychTimeout(() => {
                     target.value = text;
                 }, delay);
             }
@@ -1258,15 +1312,27 @@ var jsPsychModule = (function (exports) {
         }
     }
 
+    /**
+     * A class that provides a wrapper around the global setTimeout and clearTimeout functions.
+     */
     class TimeoutAPI {
         constructor() {
             this.timeout_handlers = [];
         }
+        /**
+         * Calls a function after a specified delay, in milliseconds.
+         * @param callback The function to call after the delay.
+         * @param delay The number of milliseconds to wait before calling the function.
+         * @returns A handle that can be used to clear the timeout with clearTimeout.
+         */
         setTimeout(callback, delay) {
             const handle = window.setTimeout(callback, delay);
             this.timeout_handlers.push(handle);
             return handle;
         }
+        /**
+         * Clears all timeouts that have been created with setTimeout.
+         */
         clearAllTimeouts() {
             for (const handler of this.timeout_handlers) {
                 clearTimeout(handler);
@@ -1277,13 +1343,12 @@ var jsPsychModule = (function (exports) {
 
     function createJointPluginAPIObject(jsPsych) {
         const settings = jsPsych.getInitSettings();
-        return Object.assign({}, ...[
-            new KeyboardListenerAPI(jsPsych.getDisplayContainerElement, settings.case_sensitive_responses, settings.minimum_valid_rt),
-            new TimeoutAPI(),
-            new MediaAPI(settings.use_webaudio, jsPsych.webaudio_context),
-            new HardwareAPI(),
-            new SimulationAPI(),
-        ].map((object) => autoBind(object)));
+        const keyboardListenerAPI = autoBind(new KeyboardListenerAPI(jsPsych.getDisplayContainerElement, settings.case_sensitive_responses, settings.minimum_valid_rt));
+        const timeoutAPI = autoBind(new TimeoutAPI());
+        const mediaAPI = autoBind(new MediaAPI(settings.use_webaudio, jsPsych.webaudio_context));
+        const hardwareAPI = autoBind(new HardwareAPI());
+        const simulationAPI = autoBind(new SimulationAPI(jsPsych.getDisplayContainerElement, timeoutAPI.setTimeout));
+        return Object.assign({}, ...[keyboardListenerAPI, timeoutAPI, mediaAPI, hardwareAPI, simulationAPI]);
     }
 
     var wordList = [
@@ -1859,7 +1924,8 @@ var jsPsychModule = (function (exports) {
                 // test to make sure the new neighbor isn't equal to the old one
                 while (equalityTest(random_shuffle[i + 1], random_shuffle[random_pick]) ||
                     equalityTest(random_shuffle[i + 1], random_shuffle[random_pick + 1]) ||
-                    equalityTest(random_shuffle[i + 1], random_shuffle[random_pick - 1])) {
+                    equalityTest(random_shuffle[i + 1], random_shuffle[random_pick - 1]) ||
+                    equalityTest(random_shuffle[i], random_shuffle[random_pick])) {
                     random_pick = Math.floor(Math.random() * (random_shuffle.length - 2)) + 1;
                 }
                 const new_neighbor = random_shuffle[random_pick];
@@ -2409,7 +2475,11 @@ var jsPsychModule = (function (exports) {
         // recursive downward search for active trial to extract timeline variable
         timelineVariable(variable_name) {
             if (typeof this.timeline_parameters == "undefined") {
-                return this.findTimelineVariable(variable_name);
+                const val = this.findTimelineVariable(variable_name);
+                if (typeof val === "undefined") {
+                    console.warn("Timeline variable " + variable_name + " not found.");
+                }
+                return val;
             }
             else {
                 // if progress.current_location is -1, then the timeline variable is being evaluated
@@ -2424,7 +2494,11 @@ var jsPsychModule = (function (exports) {
                     loc = loc - 1;
                 }
                 // now find the variable
-                return this.timeline_parameters.timeline[loc].timelineVariable(variable_name);
+                const val = this.timeline_parameters.timeline[loc].timelineVariable(variable_name);
+                if (typeof val === "undefined") {
+                    console.warn("Timeline variable " + variable_name + " not found.");
+                }
+                return val;
             }
         }
         // recursively get all the timeline variables for this trial
@@ -2702,6 +2776,7 @@ var jsPsychModule = (function (exports) {
             return this.DOM_container;
         }
         finishTrial(data = {}) {
+            var _a;
             if (this.current_trial_finished) {
                 return;
             }
@@ -2742,46 +2817,58 @@ var jsPsychModule = (function (exports) {
                 }
             }
             // handle extension callbacks
-            if (Array.isArray(current_trial.extensions)) {
-                for (const extension of current_trial.extensions) {
-                    const ext_data_values = this.extensions[extension.type.info.name].on_finish(extension.params);
-                    Object.assign(trial_data_values, ext_data_values);
+            const extensionCallbackResults = ((_a = current_trial.extensions) !== null && _a !== void 0 ? _a : []).map((extension) => this.extensions[extension.type.info.name].on_finish(extension.params));
+            const onExtensionCallbacksFinished = () => {
+                // about to execute lots of callbacks, so switch context.
+                this.internal.call_immediate = true;
+                // handle callback at plugin level
+                if (typeof current_trial.on_finish === "function") {
+                    current_trial.on_finish(trial_data_values);
                 }
-            }
-            // about to execute lots of callbacks, so switch context.
-            this.internal.call_immediate = true;
-            // handle callback at plugin level
-            if (typeof current_trial.on_finish === "function") {
-                current_trial.on_finish(trial_data_values);
-            }
-            // handle callback at whole-experiment level
-            this.opts.on_trial_finish(trial_data_values);
-            // after the above callbacks are complete, then the data should be finalized
-            // for this trial. call the on_data_update handler, passing in the same
-            // data object that just went through the trial's finish handlers.
-            this.opts.on_data_update(trial_data_values);
-            // done with callbacks
-            this.internal.call_immediate = false;
-            // wait for iti
-            if (this.simulation_mode === "data-only") {
-                this.nextTrial();
-            }
-            else if (typeof current_trial.post_trial_gap === null ||
-                typeof current_trial.post_trial_gap === "undefined") {
-                if (this.opts.default_iti > 0) {
-                    setTimeout(this.nextTrial, this.opts.default_iti);
-                }
-                else {
+                // handle callback at whole-experiment level
+                this.opts.on_trial_finish(trial_data_values);
+                // after the above callbacks are complete, then the data should be finalized
+                // for this trial. call the on_data_update handler, passing in the same
+                // data object that just went through the trial's finish handlers.
+                this.opts.on_data_update(trial_data_values);
+                // done with callbacks
+                this.internal.call_immediate = false;
+                // wait for iti
+                if (this.simulation_mode === "data-only") {
                     this.nextTrial();
                 }
+                else if (typeof current_trial.post_trial_gap === null ||
+                    typeof current_trial.post_trial_gap === "undefined") {
+                    if (this.opts.default_iti > 0) {
+                        setTimeout(this.nextTrial, this.opts.default_iti);
+                    }
+                    else {
+                        this.nextTrial();
+                    }
+                }
+                else {
+                    if (current_trial.post_trial_gap > 0) {
+                        setTimeout(this.nextTrial, current_trial.post_trial_gap);
+                    }
+                    else {
+                        this.nextTrial();
+                    }
+                }
+            };
+            // Strictly using Promise.resolve to turn all values into promises would be cleaner here, but it
+            // would require user test code to make the event loop tick after every simulated key press even
+            // if there are no async `on_finish` methods. Hence, in order to avoid a breaking change, we
+            // only rely on the event loop if at least one `on_finish` method returns a promise.
+            if (extensionCallbackResults.some((result) => typeof result.then === "function")) {
+                Promise.all(extensionCallbackResults.map((result) => Promise.resolve(result).then((ext_data_values) => {
+                    Object.assign(trial_data_values, ext_data_values);
+                }))).then(onExtensionCallbacksFinished);
             }
             else {
-                if (current_trial.post_trial_gap > 0) {
-                    setTimeout(this.nextTrial, current_trial.post_trial_gap);
+                for (const values of extensionCallbackResults) {
+                    Object.assign(trial_data_values, values);
                 }
-                else {
-                    this.nextTrial();
-                }
+                onExtensionCallbacksFinished();
             }
         }
         endExperiment(end_message = "", data = {}) {
@@ -3016,13 +3103,14 @@ var jsPsychModule = (function (exports) {
                 }
             };
             let trial_complete;
+            let trial_sim_opts;
+            let trial_sim_opts_merged;
             if (!this.simulation_mode) {
                 trial_complete = trial.type.trial(this.DOM_target, trial, load_callback);
             }
             if (this.simulation_mode) {
                 // check if the trial supports simulation
                 if (trial.type.simulate) {
-                    let trial_sim_opts;
                     if (!trial.simulation_options) {
                         trial_sim_opts = this.simulation_options.default;
                     }
@@ -3044,13 +3132,16 @@ var jsPsychModule = (function (exports) {
                             trial_sim_opts = trial.simulation_options;
                         }
                     }
-                    trial_sim_opts = this.utils.deepCopy(trial_sim_opts);
-                    trial_sim_opts = this.replaceFunctionsWithValues(trial_sim_opts, null);
-                    if ((trial_sim_opts === null || trial_sim_opts === void 0 ? void 0 : trial_sim_opts.simulate) === false) {
+                    // merge in default options that aren't overriden by the trial's simulation_options
+                    // including nested parameters in the simulation_options
+                    trial_sim_opts_merged = this.utils.deepMerge(this.simulation_options.default, trial_sim_opts);
+                    trial_sim_opts_merged = this.utils.deepCopy(trial_sim_opts_merged);
+                    trial_sim_opts_merged = this.replaceFunctionsWithValues(trial_sim_opts_merged, null);
+                    if ((trial_sim_opts_merged === null || trial_sim_opts_merged === void 0 ? void 0 : trial_sim_opts_merged.simulate) === false) {
                         trial_complete = trial.type.trial(this.DOM_target, trial, load_callback);
                     }
                     else {
-                        trial_complete = trial.type.simulate(trial, (trial_sim_opts === null || trial_sim_opts === void 0 ? void 0 : trial_sim_opts.mode) || this.simulation_mode, trial_sim_opts, load_callback);
+                        trial_complete = trial.type.simulate(trial, (trial_sim_opts_merged === null || trial_sim_opts_merged === void 0 ? void 0 : trial_sim_opts_merged.mode) || this.simulation_mode, trial_sim_opts_merged, load_callback);
                     }
                 }
                 else {
@@ -3060,8 +3151,11 @@ var jsPsychModule = (function (exports) {
             }
             // see if trial_complete is a Promise by looking for .then() function
             const is_promise = trial_complete && typeof trial_complete.then == "function";
-            // in simulation mode we let the simulate function call the load_callback always.
-            if (!is_promise && !this.simulation_mode) {
+            // in simulation mode we let the simulate function call the load_callback always,
+            // so we don't need to call it here. however, if we are in simulation mode but not simulating
+            // this particular trial we need to call it.
+            if (!is_promise &&
+                (!this.simulation_mode || (this.simulation_mode && (trial_sim_opts_merged === null || trial_sim_opts_merged === void 0 ? void 0 : trial_sim_opts_merged.simulate) === false))) {
                 load_callback();
             }
             // done with callbacks
@@ -3069,16 +3163,16 @@ var jsPsychModule = (function (exports) {
         }
         evaluateTimelineVariables(trial) {
             for (const key of Object.keys(trial)) {
-                // timeline variables on the root level
                 if (typeof trial[key] === "object" &&
                     trial[key] !== null &&
                     typeof trial[key].timelineVariablePlaceholder !== "undefined") {
-                    /*trial[key].toString().replace(/\s/g, "") ==
-                      "function(){returntimeline.timelineVariable(varname);}"
-                  )*/ trial[key] = trial[key].timelineVariableFunction();
+                    trial[key] = trial[key].timelineVariableFunction();
                 }
                 // timeline variables that are nested in objects
-                if (typeof trial[key] === "object" && trial[key] !== null) {
+                if (typeof trial[key] === "object" &&
+                    trial[key] !== null &&
+                    key !== "timeline" &&
+                    key !== "timeline_variables") {
                     this.evaluateTimelineVariables(trial[key]);
                 }
             }
@@ -3121,9 +3215,11 @@ var jsPsychModule = (function (exports) {
             else if (typeof obj === "object") {
                 if (info === null || !info.nested) {
                     for (const key of Object.keys(obj)) {
-                        if (key === "type") {
+                        if (key === "type" || key === "timeline" || key === "timeline_variables") {
                             // Ignore the object's `type` field because it contains a plugin and we do not want to
-                            // call plugin functions
+                            // call plugin functions. Also ignore `timeline` and `timeline_variables` because they
+                            // are used in the `trials` parameter of the preload plugin and we don't want to actually
+                            // evaluate those in that context.
                             continue;
                         }
                         obj[key] = this.replaceFunctionsWithValues(obj[key], null);
@@ -3147,20 +3243,21 @@ var jsPsychModule = (function (exports) {
             for (const param in trial.type.info.parameters) {
                 // check if parameter is complex with nested defaults
                 if (trial.type.info.parameters[param].type === exports.ParameterType.COMPLEX) {
-                    if (trial.type.info.parameters[param].array === true) {
+                    // check if parameter is undefined and has a default value
+                    if (typeof trial[param] === "undefined" && trial.type.info.parameters[param].default) {
+                        trial[param] = trial.type.info.parameters[param].default;
+                    }
+                    // if parameter is an array, iterate over each entry after confirming that there are
+                    // entries to iterate over. this is common when some parameters in a COMPLEX type have
+                    // default values and others do not.
+                    if (trial.type.info.parameters[param].array === true && Array.isArray(trial[param])) {
                         // iterate over each entry in the array
                         trial[param].forEach(function (ip, i) {
                             // check each parameter in the plugin description
                             for (const p in trial.type.info.parameters[param].nested) {
                                 if (typeof trial[param][i][p] === "undefined" || trial[param][i][p] === null) {
                                     if (typeof trial.type.info.parameters[param].nested[p].default === "undefined") {
-                                        console.error("You must specify a value for the " +
-                                            p +
-                                            " parameter (nested in the " +
-                                            param +
-                                            " parameter) in the " +
-                                            trial.type +
-                                            " plugin.");
+                                        console.error(`You must specify a value for the ${p} parameter (nested in the ${param} parameter) in the ${trial.type.info.name} plugin.`);
                                     }
                                     else {
                                         trial[param][i][p] = trial.type.info.parameters[param].nested[p].default;
@@ -3173,11 +3270,7 @@ var jsPsychModule = (function (exports) {
                 // if it's not nested, checking is much easier and do that here:
                 else if (typeof trial[param] === "undefined" || trial[param] === null) {
                     if (typeof trial.type.info.parameters[param].default === "undefined") {
-                        console.error("You must specify a value for the " +
-                            param +
-                            " parameter in the " +
-                            trial.type.info.name +
-                            " plugin.");
+                        console.error(`You must specify a value for the ${param} parameter in the ${trial.type.info.name} plugin.`);
                     }
                     else {
                         trial[param] = trial.type.info.parameters[param].default;
